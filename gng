@@ -1,0 +1,237 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "ELIXIR 3.5 - South Bronx The Trenches",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "Elixir35",
+    IntroEnabled = true,
+    IntroText = "ELIXIR 3.5 Loaded"
+})
+
+-- Variables
+local running = false
+local autoSellEnabled = false
+local buyAmount = 1
+local autoFarmRunning = false
+local cookAmount = 5
+local MaxDistance = 500
+local EnabledESP = false
+local ShowName = true
+local ShowHealth = true
+local ShowDistance = true
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local buyRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("StorePurchase")
+
+-- ================== MAIN TABS ==================
+
+local FarmTab = Window:MakeTab({
+    Name = "Farm",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local AutoTab = Window:MakeTab({
+    Name = "Auto",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local StatusTab = Window:MakeTab({
+    Name = "Status",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local TpTab = Window:MakeTab({
+    Name = "Teleport",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local EspTab = Window:MakeTab({
+    Name = "ESP",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local RespawnTab = Window:MakeTab({
+    Name = "Respawn",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- ================== FARM TAB ==================
+FarmTab:AddSection({Name = "Farm Controls"})
+
+FarmTab:AddToggle({
+    Name = "Auto Farm",
+    Default = false,
+    Callback = function(Value)
+        running = Value
+        OrionLib:MakeNotification({Name = "Farm", Content = running and "Auto Farm Started!" or "Auto Farm Stopped", Time = 3})
+    end    
+})
+
+FarmTab:AddSlider({
+    Name = "Buy Amount",
+    Min = 1,
+    Max = 25,
+    Default = 1,
+    Increment = 1,
+    Callback = function(Value)
+        buyAmount = Value
+    end    
+})
+
+FarmTab:AddButton({
+    Name = "Buy Now",
+    Callback = function()
+        for i = 1, buyAmount do
+            buyRemote:FireServer("Water")
+            buyRemote:FireServer("Sugar Block Bag")
+            buyRemote:FireServer("Gelatin")
+            buyRemote:FireServer("Empty Bag")
+            task.wait(0.4)
+        end
+        OrionLib:MakeNotification({Name = "Buy", Content = "Pembelian selesai!", Time = 3})
+    end    
+})
+
+FarmTab:AddToggle({
+    Name = "Auto Sell",
+    Default = false,
+    Callback = function(Value)
+        autoSellEnabled = Value
+    end    
+})
+
+-- ================== AUTO TAB ==================
+AutoTab:AddSection({Name = "Auto Farm Loop"})
+
+AutoTab:AddToggle({
+    Name = "Auto Farm Loop",
+    Default = false,
+    Callback = function(Value)
+        autoFarmRunning = Value
+        OrionLib:MakeNotification({Name = "Auto Farm", Content = autoFarmRunning and "Loop Started" or "Loop Stopped", Time = 3})
+    end    
+})
+
+AutoTab:AddSlider({
+    Name = "Cook Amount",
+    Min = 1,
+    Max = 50,
+    Default = 5,
+    Increment = 1,
+    Callback = function(Value)
+        cookAmount = Value
+    end    
+})
+
+AutoTab:AddSection({Name = "Protection"})
+
+AutoTab:AddToggle({
+    Name = "Anti Hit + Anti Approach",
+    Default = false,
+    Callback = function(Value)
+        getgenv().ANTI_HIT = Value
+        OrionLib:MakeNotification({Name = "Protection", Content = Value and "Anti Hit Activated" or "Anti Hit Disabled", Time = 3})
+    end    
+})
+
+-- ================== STATUS TAB ==================
+StatusTab:AddSection({Name = "Inventory"})
+
+local waterLabel = StatusTab:AddLabel("Water: 0")
+local sugarLabel = StatusTab:AddLabel("Sugar Block Bag: 0")
+local gelatinLabel = StatusTab:AddLabel("Gelatin: 0")
+local bagLabel = StatusTab:AddLabel("Empty Bag: 0")
+
+-- Update Inventory
+task.spawn(function()
+    while wait(0.8) do
+        local water = 0 -- Ganti dengan fungsi countItem kamu
+        local sugar = 0
+        local gelatin = 0
+        local bag = 0
+        
+        waterLabel:Set("Water: " .. water)
+        sugarLabel:Set("Sugar Block Bag: " .. sugar)
+        gelatinLabel:Set("Gelatin: " .. gelatin)
+        bagLabel:Set("Empty Bag: " .. bag)
+    end
+end)
+
+-- ================== TELEPORT TAB ==================
+TpTab:AddSection({Name = "Quick Teleport"})
+
+local positions = {
+    ["NPC Store"] = CFrame.new(510.76, 3.59, 600.79),
+    ["Tier"] = CFrame.new(1110.19, 4.28, 117.14),
+    ["Apart 1"] = CFrame.new(1140.32, 10.11, 450.25),
+    -- Tambahkan posisi lain sesuai kebutuhan
+}
+
+for name, cf in pairs(positions) do
+    TpTab:AddButton({
+        Name = name,
+        Callback = function()
+            local char = player.Character
+            local seat = char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.SeatPart
+            if seat then
+                local vehicle = seat:FindFirstAncestorOfClass("Model")
+                if vehicle and vehicle.PrimaryPart then
+                    vehicle:SetPrimaryPartCFrame(cf)
+                end
+            end
+            OrionLib:MakeNotification({Name = "Teleport", Content = "Teleported to " .. name, Time = 3})
+        end    
+    })
+end)
+
+-- ================== ESP TAB ==================
+EspTab:AddToggle({
+    Name = "ESP Enabled",
+    Default = false,
+    Callback = function(Value)
+        EnabledESP = Value
+    end    
+})
+
+EspTab:AddToggle({
+    Name = "Show Name",
+    Default = true,
+    Callback = function(Value) ShowName = Value end    
+})
+
+EspTab:AddToggle({
+    Name = "Show Health",
+    Default = true,
+    Callback = function(Value) ShowHealth = Value end    
+})
+
+EspTab:AddToggle({
+    Name = "Show Distance",
+    Default = true,
+    Callback = function(Value) ShowDistance = Value end    
+})
+
+EspTab:AddSlider({
+    Name = "Max Distance",
+    Min = 50,
+    Max = 8000,
+    Default = 500,
+    Increment = 50,
+    Callback = function(Value)
+        MaxDistance = Value
+    end    
+})
+
+-- ================== RESPAWN TAB ==================
+RespawnTab:AddSection({Name = "Respawn System"})
+
+-- (Tambahkan button resp
