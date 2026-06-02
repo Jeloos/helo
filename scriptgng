@@ -1,0 +1,231 @@
+-- Silent Aim + ESP South Bronx (2026)
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Settings
+local SilentAimEnabled = true
+local ESPEnabled = true
+local AimPart = "Head"
+local FOV = 120
+local Prediction = 0.13
+
+-- ================== GUI ==================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 300, 0, 220)
+Frame.Position = UDim2.new(0.5, -150, 0.4, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Title.Text = "Silent Aim + ESP - South Bronx"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Frame
+
+-- Toggle Silent Aim
+local ToggleSilent = Instance.new("TextButton")
+ToggleSilent.Size = UDim2.new(0.9, 0, 0, 45)
+ToggleSilent.Position = UDim2.new(0.05, 0, 0.25, 0)
+ToggleSilent.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+ToggleSilent.Text = "Silent Aim: ON"
+ToggleSilent.TextColor3 = Color3.new(1,1,1)
+ToggleSilent.TextSize = 16
+ToggleSilent.Font = Enum.Font.GothamSemibold
+ToggleSilent.Parent = Frame
+
+-- Toggle ESP
+local ToggleESP = Instance.new("TextButton")
+ToggleESP.Size = UDim2.new(0.9, 0, 0, 45)
+ToggleESP.Position = UDim2.new(0.05, 0, 0.52, 0)
+ToggleESP.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+ToggleESP.Text = "ESP: ON"
+ToggleESP.TextColor3 = Color3.new(1,1,1)
+ToggleESP.TextSize = 16
+ToggleESP.Font = Enum.Font.GothamSemibold
+ToggleESP.Parent = Frame
+
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(0.9, 0, 0, 30)
+Status.Position = UDim2.new(0.05, 0, 0.8, 0)
+Status.BackgroundTransparency = 1
+Status.Text = "Loaded Successfully"
+Status.TextColor3 = Color3.fromRGB(0, 255, 100)
+Status.TextSize = 14
+Status.Parent = Frame
+
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.TextSize = 22
+CloseBtn.Parent = Frame
+
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- ================== ESP FUNCTION ==================
+local ESPTable = {}
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    local Box = Drawing.new("Square")
+    Box.Thickness = 2
+    Box.Filled = false
+    Box.Transparency = 1
+    Box.Color = Color3.fromRGB(255, 50, 50)
+    
+    local Name = Drawing.new("Text")
+    Name.Size = 14
+    Name.Center = true
+    Name.Outline = true
+    Name.Color = Color3.fromRGB(255, 255, 255)
+    
+    local Health = Drawing.new("Text")
+    Health.Size = 13
+    Health.Center = true
+    Health.Outline = true
+    Health.Color = Color3.fromRGB(0, 255, 0)
+    
+    ESPTable[player] = {Box = Box, Name = Name, Health = Health}
+end
+
+local function UpdateESP()
+    for player, drawings in pairs(ESPTable) do
+        if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart") then
+            local RootPart = player.Character.HumanoidRootPart
+            local Head = player.Character:FindFirstChild("Head")
+            local Humanoid = player.Character.Humanoid
+            
+            local Vector, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
+            
+            if OnScreen then
+                local Top = Camera:WorldToViewportPoint(Head.Position + Vector3.new(0, 0.5, 0))
+                local Bottom = Camera:WorldToViewportPoint(RootPart.Position - Vector3.new(0, 3, 0))
+                
+                local Height = Bottom.Y - Top.Y
+                local Width = Height * 0.5
+                
+                -- Box
+                drawings.Box.Size = Vector2.new(Width, Height)
+                drawings.Box.Position = Vector2.new(Top.X - Width/2, Top.Y)
+                drawings.Box.Visible = ESPEnabled
+                
+                -- Name
+                drawings.Name.Text = player.Name
+                drawings.Name.Position = Vector2.new(Top.X, Top.Y - 20)
+                drawings.Name.Visible = ESPEnabled
+                
+                -- Health
+                local healthPercent = math.floor(Humanoid.Health / Humanoid.MaxHealth * 100)
+                drawings.Health.Text = healthPercent .. "%"
+                drawings.Health.Position = Vector2.new(Top.X, Top.Y + Height + 5)
+                drawings.Health.Color = Color3.fromRGB(255 - (healthPercent * 2.55), healthPercent * 2.55, 0)
+                drawings.Health.Visible = ESPEnabled
+            else
+                drawings.Box.Visible = false
+                drawings.Name.Visible = false
+                drawings.Health.Visible = false
+            end
+        else
+            drawings.Box.Visible = false
+            drawings.Name.Visible = false
+            drawings.Health.Visible = false
+        end
+    end
+end
+
+-- Buat ESP untuk player yang sudah ada
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        CreateESP(player)
+    end
+end
+
+Players.PlayerAdded:Connect(CreateESP)
+
+-- ================== SILENT AIM LOGIC ==================
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+
+    if SilentAimEnabled and method == "FireServer" then
+        local closest = nil
+        local shortest = FOV
+
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild(AimPart) then
+                local hum = plr.Character:FindFirstChild("Humanoid")
+                if hum and hum.Health > 0 then
+                    local pos, onScreen = Camera:WorldToViewportPoint(plr.Character[AimPart].Position)
+                    if onScreen then
+                        local mousePos = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+                        local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                        
+                        if dist < shortest then
+                            shortest = dist
+                            closest = plr
+                        end
+                    end
+                end
+            end
+        end
+
+        if closest and closest.Character and closest.Character:FindFirstChild(AimPart) then
+            local targetPos = closest.Character[AimPart].Position
+            local root = closest.Character:FindFirstChild("HumanoidRootPart")
+            
+            if root then
+                targetPos = targetPos + (root.Velocity * Prediction)
+            end
+
+            for i, arg in ipairs(args) do
+                if typeof(arg) == "Vector3" and (arg - Camera.CFrame.Position).Magnitude < 1000 then
+                    args[i] = targetPos
+                    break
+                end
+            end
+        end
+    end
+
+    return oldNamecall(self, unpack(args))
+end)
+
+setreadonly(mt, true)
+
+-- ================== CONNECTIONS ==================
+RunService.RenderStepped:Connect(UpdateESP)
+
+ToggleSilent.MouseButton1Click:Connect(function()
+    SilentAimEnabled = not SilentAimEnabled
+    ToggleSilent.Text = "Silent Aim: " .. (SilentAimEnabled and "ON" or "OFF")
+    ToggleSilent.BackgroundColor3 = SilentAimEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+end)
+
+ToggleESP.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    ToggleESP.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
+    ToggleESP.BackgroundColor3 = ESPEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
+end)
+
+print("Silent Aim + ESP Loaded! GUI muncul di layar.")
